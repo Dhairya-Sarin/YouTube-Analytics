@@ -8,6 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import io
 import warnings
+from datetime import datetime
 
 warnings.filterwarnings('ignore')
 
@@ -25,7 +26,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS for better layout
 st.markdown("""
 <style>
     .main-header {
@@ -47,6 +48,20 @@ st.markdown("""
         border-left: 4px solid #1f77b4;
         margin: 1rem 0;
     }
+    /* Make correlation heatmap more visible */
+    .js-plotly-plot {
+        width: 100% !important;
+    }
+    /* Expand the main content area */
+    .block-container {
+        max-width: 95%;
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+    /* Better table display */
+    .dataframe {
+        font-size: 12px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -66,7 +81,7 @@ def main():
         # Channel Configuration
         st.subheader("📺 Channel Settings")
         channel_input = st.text_input("Channel Name/URL", placeholder="Enter channel name or URL")
-        max_videos = st.slider("Max Videos to Analyze", 10, 500, 100, step=10)
+        max_videos = st.slider("Max Videos to Analyze", 10, 500, 50, step=10)
 
         # Analysis Configuration
         st.subheader("🔍 Analysis Settings")
@@ -198,9 +213,9 @@ def run_analysis(api_key, channel_input, max_videos, analysis_type, feature_grou
             thumbnail_features = thumbnail_extractor.extract_batch([video['thumbnail_url'] for video in channel_data])
             progress_bar.progress(0.6)
 
-        # Step 3: Prepare engagement data
+        # Step 3: Prepare engagement data with video metadata
         status_text.text("📊 Preparing engagement metrics...")
-        engagement_data = prepare_engagement_data(channel_data)
+        engagement_data, video_metadata = prepare_engagement_data(channel_data)
         progress_bar.progress(0.8)
 
         # Step 4: Run analysis
@@ -208,15 +223,17 @@ def run_analysis(api_key, channel_input, max_videos, analysis_type, feature_grou
 
         if analysis_type == "Complete Analysis":
             display_complete_analysis(title_features, thumbnail_features, engagement_data,
-                                      analyzer, advanced_analytics, correlation_threshold,
-                                      include_outliers, enable_clustering)
+                                      video_metadata, analyzer, advanced_analytics,
+                                      correlation_threshold, include_outliers, enable_clustering)
         elif analysis_type == "Title Features Only":
-            display_title_analysis(title_features, engagement_data, analyzer, correlation_threshold)
+            display_title_analysis(title_features, engagement_data, video_metadata,
+                                   analyzer, correlation_threshold)
         elif analysis_type == "Thumbnail Features Only":
-            display_thumbnail_analysis(thumbnail_features, engagement_data, analyzer, correlation_threshold)
+            display_thumbnail_analysis(thumbnail_features, engagement_data, video_metadata,
+                                       analyzer, correlation_threshold)
         elif analysis_type == "Temporal Analysis":
             display_temporal_analysis(channel_data, title_features, thumbnail_features,
-                                      engagement_data, advanced_analytics)
+                                      engagement_data, video_metadata, advanced_analytics)
         elif analysis_type == "Competitive Analysis":
             display_competitive_analysis(channel_data, engagement_data, advanced_analytics)
 
@@ -224,7 +241,8 @@ def run_analysis(api_key, channel_input, max_videos, analysis_type, feature_grou
         status_text.text("✅ Analysis complete!")
 
         # Export options
-        display_export_options(title_features, thumbnail_features, engagement_data, export_format)
+        display_export_options(title_features, thumbnail_features, engagement_data,
+                               video_metadata, export_format)
 
     except Exception as e:
         st.error(f"❌ Error during analysis: {str(e)}")
@@ -232,10 +250,21 @@ def run_analysis(api_key, channel_input, max_videos, analysis_type, feature_grou
 
 
 def prepare_engagement_data(channel_data):
-    """Prepare engagement metrics dataframe"""
+    """Prepare engagement metrics dataframe and video metadata"""
     engagement_metrics = []
+    video_metadata = pd.DataFrame()
+
+    # Store video titles and other metadata
+    video_titles = []
+    video_ids = []
+    published_dates = []
 
     for video in channel_data:
+        # Store metadata
+        video_ids.append(video['video_id'])
+        video_titles.append(video['title'])
+        published_dates.append(video['published_at'])
+
         # Calculate additional metrics
         views = max(video['view_count'], 1)
         likes = video['like_count']
@@ -250,9 +279,14 @@ def prepare_engagement_data(channel_data):
         total_engagement = likes + comments
         viral_score = np.log10(views + 1) * engagement_rate
 
-        # Temporal features
-        published = pd.to_datetime(video['published_at'])
-        days_since_publish = (pd.Timestamp.now() - published).days
+        # Temporal features - Fixed timestamp handling
+        try:
+            published = pd.to_datetime(video['published_at'])
+            current_time = pd.Timestamp.now()
+            days_since_publish = (current_time - published).days
+        except Exception as e:
+            print(f"Error parsing date for video {video.get('video_id', 'unknown')}: {e}")
+            days_since_publish = 30
 
         engagement_metrics.append({
             'video_id': video['video_id'],
@@ -270,12 +304,19 @@ def prepare_engagement_data(channel_data):
             'subscriber_count': video.get('channel_subscriber_count', 0)
         })
 
-    return pd.DataFrame(engagement_metrics)
+    # Create video metadata dataframe
+    video_metadata = pd.DataFrame({
+        'video_id': video_ids,
+        'title': video_titles,
+        'published_at': published_dates
+    })
+
+    return pd.DataFrame(engagement_metrics), video_metadata
 
 
 def display_complete_analysis(title_features, thumbnail_features, engagement_data,
-                              analyzer, advanced_analytics, correlation_threshold,
-                              include_outliers, enable_clustering):
+                              video_metadata, analyzer, advanced_analytics,
+                              correlation_threshold, include_outliers, enable_clustering):
     """Display comprehensive analysis"""
 
     st.header("🔍 Complete Channel Analysis")
@@ -284,10 +325,11 @@ def display_complete_analysis(title_features, thumbnail_features, engagement_dat
     display_overview_metrics(engagement_data)
 
     # Create tabs for different analyses
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📊 Correlation Analysis",
         "📝 Title Insights",
         "🖼️ Thumbnail Insights",
+        "📹 Video Performance",
         "🔬 Advanced Analytics",
         "💡 Recommendations"
     ])
@@ -298,21 +340,24 @@ def display_complete_analysis(title_features, thumbnail_features, engagement_dat
 
     with tab2:
         if title_features is not None:
-            display_detailed_title_analysis(title_features, engagement_data, analyzer)
+            display_detailed_title_analysis(title_features, engagement_data, video_metadata, analyzer)
         else:
             st.info("Title analysis not included in current configuration")
 
     with tab3:
         if thumbnail_features is not None:
-            display_detailed_thumbnail_analysis(thumbnail_features, engagement_data, analyzer)
+            display_detailed_thumbnail_analysis(thumbnail_features, engagement_data, video_metadata, analyzer)
         else:
             st.info("Thumbnail analysis not included in current configuration")
 
     with tab4:
+        display_video_performance_analysis(engagement_data, video_metadata)
+
+    with tab5:
         display_advanced_analytics_tab(title_features, thumbnail_features, engagement_data,
                                        advanced_analytics, include_outliers, enable_clustering)
 
-    with tab5:
+    with tab6:
         display_recommendations(title_features, thumbnail_features, engagement_data, analyzer)
 
 
@@ -360,18 +405,27 @@ def display_correlation_overview(title_features, thumbnail_features, engagement_
         st.warning("No features available for correlation analysis")
         return
 
-    # Calculate correlations
-    analysis_data = pd.concat([all_features, engagement_data.select_dtypes(include=[np.number])], axis=1)
+    # Calculate correlations - ensure only numeric columns
+    numeric_engagement = engagement_data.select_dtypes(include=[np.number])
+    analysis_data = pd.concat([all_features, numeric_engagement], axis=1)
+
     correlations = analyzer.calculate_correlations(
         analysis_data,
         target_columns=['views', 'likes', 'comments', 'engagement_rate', 'viral_score']
     )
 
-    # Display correlation heatmap
-    col1, col2 = st.columns([3, 1])
+    # Create two columns with better spacing
+    col1, col2 = st.columns([4, 2])
 
     with col1:
+        # Make heatmap larger and more readable
         fig = analyzer.plot_correlation_heatmap(correlations, "All Features")
+        fig.update_layout(
+            height=800,  # Increased height
+            width=1000,  # Increased width
+            font=dict(size=12),
+            margin=dict(l=250, r=100, t=100, b=100)
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -380,17 +434,58 @@ def display_correlation_overview(title_features, thumbnail_features, engagement_
 
         # Color code correlations
         def color_correlation(val):
-            if abs(val) >= 0.5:
-                return 'background-color: #ff9999' if val < 0 else 'background-color: #99ff99'
-            elif abs(val) >= 0.3:
-                return 'background-color: #ffcc99' if val < 0 else 'background-color: #ccffcc'
+            if isinstance(val, (int, float)):
+                if abs(val) >= 0.5:
+                    return 'background-color: #ff9999' if val < 0 else 'background-color: #99ff99'
+                elif abs(val) >= 0.3:
+                    return 'background-color: #ffcc99' if val < 0 else 'background-color: #ccffcc'
             return ''
 
         styled_df = top_correlations.style.applymap(color_correlation, subset=['Correlation'])
-        st.dataframe(styled_df, use_container_width=True)
+        st.dataframe(styled_df, use_container_width=True, height=600)
 
 
-def display_title_analysis(title_features, engagement_data, analyzer, correlation_threshold):
+def display_video_performance_analysis(engagement_data, video_metadata):
+    """Display individual video performance analysis"""
+    st.subheader("📹 Individual Video Performance")
+
+    # Merge engagement data with metadata
+    video_analysis = engagement_data.merge(video_metadata, on='video_id')
+
+    # Sort by views
+    video_analysis = video_analysis.sort_values('views', ascending=False)
+
+    # Top performing videos
+    st.markdown("### 🏆 Top Performing Videos")
+    top_videos = video_analysis.head(10)[['title', 'views', 'likes', 'engagement_rate', 'days_since_publish']]
+    top_videos['engagement_rate'] = (top_videos['engagement_rate'] * 100).round(2).astype(str) + '%'
+    st.dataframe(top_videos, use_container_width=True)
+
+    # Performance scatter plot
+    st.markdown("### 📊 Views vs Engagement Rate")
+    fig = px.scatter(
+        video_analysis,
+        x='views',
+        y='engagement_rate',
+        hover_data=['title'],
+        title="Video Performance Distribution",
+        labels={'engagement_rate': 'Engagement Rate', 'views': 'Views'},
+        color='viral_score',
+        color_continuous_scale='viridis'
+    )
+    fig.update_layout(height=500)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Recent videos performance
+    st.markdown("### 🆕 Recent Videos Performance")
+    recent_videos = video_analysis.nsmallest(10, 'days_since_publish')[
+        ['title', 'views', 'likes', 'days_since_publish', 'views_per_day']
+    ]
+    st.dataframe(recent_videos, use_container_width=True)
+
+
+def display_title_analysis(title_features, engagement_data, video_metadata,
+                           analyzer, correlation_threshold):
     """Display title-specific analysis"""
     st.header("📝 Title Feature Analysis")
 
@@ -398,18 +493,21 @@ def display_title_analysis(title_features, engagement_data, analyzer, correlatio
         st.error("Title features not available")
         return
 
-    # Correlation analysis
-    analysis_data = pd.concat([title_features, engagement_data.select_dtypes(include=[np.number])], axis=1)
+    # Ensure we only use numeric columns for correlation
+    numeric_engagement = engagement_data.select_dtypes(include=[np.number])
+    analysis_data = pd.concat([title_features, numeric_engagement], axis=1)
+
     correlations = analyzer.calculate_correlations(
         analysis_data,
         target_columns=['views', 'likes', 'comments', 'engagement_rate']
     )
 
-    # Main visualization
-    col1, col2 = st.columns([2, 1])
+    # Main visualization with better layout
+    col1, col2 = st.columns([3, 2])
 
     with col1:
         fig = analyzer.plot_correlation_heatmap(correlations, "Title Features")
+        fig.update_layout(height=700, width=900)
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -434,7 +532,8 @@ def display_title_analysis(title_features, engagement_data, analyzer, correlatio
         )
 
 
-def display_thumbnail_analysis(thumbnail_features, engagement_data, analyzer, correlation_threshold):
+def display_thumbnail_analysis(thumbnail_features, engagement_data, video_metadata,
+                               analyzer, correlation_threshold):
     """Display thumbnail-specific analysis"""
     st.header("🖼️ Thumbnail Feature Analysis")
 
@@ -442,17 +541,20 @@ def display_thumbnail_analysis(thumbnail_features, engagement_data, analyzer, co
         st.error("Thumbnail features not available")
         return
 
-    # Similar structure to title analysis but for thumbnails
-    analysis_data = pd.concat([thumbnail_features, engagement_data.select_dtypes(include=[np.number])], axis=1)
+    # Ensure numeric data only
+    numeric_engagement = engagement_data.select_dtypes(include=[np.number])
+    analysis_data = pd.concat([thumbnail_features, numeric_engagement], axis=1)
+
     correlations = analyzer.calculate_correlations(
         analysis_data,
         target_columns=['views', 'likes', 'comments', 'engagement_rate']
     )
 
-    col1, col2 = st.columns([2, 1])
+    col1, col2 = st.columns([3, 2])
 
     with col1:
         fig = analyzer.plot_correlation_heatmap(correlations, "Thumbnail Features")
+        fig.update_layout(height=700, width=900)
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -466,8 +568,15 @@ def display_thumbnail_analysis(thumbnail_features, engagement_data, analyzer, co
                     st.write(f"• {insight}")
 
 
-def display_detailed_title_analysis(title_features, engagement_data, analyzer):
+def display_detailed_title_analysis(title_features, engagement_data, video_metadata, analyzer):
     """Detailed title analysis with feature breakdown"""
+
+    # Merge with video metadata to show titles
+    analysis_df = pd.concat([
+        video_metadata[['title']].reset_index(drop=True),
+        title_features.reset_index(drop=True),
+        engagement_data.reset_index(drop=True)
+    ], axis=1)
 
     # Feature importance for each metric
     metrics = ['views', 'likes', 'comments', 'engagement_rate']
@@ -479,51 +588,75 @@ def display_detailed_title_analysis(title_features, engagement_data, analyzer):
         with col1 if i % 2 == 0 else col2:
             st.subheader(f"Top Features for {metric.title()}")
 
-            # Calculate correlations for this metric
-            combined_data = pd.concat([title_features, engagement_data], axis=1)
-            correlations = combined_data.corr()[metric].abs().sort_values(ascending=False)
+            # Calculate correlations for this metric - only numeric columns
+            numeric_cols = analysis_df.select_dtypes(include=[np.number]).columns
+            if metric in numeric_cols:
+                correlations = analysis_df[numeric_cols].corr()[metric].abs().sort_values(ascending=False)
 
-            # Filter out the metric itself and get top features
-            top_features = correlations.drop(metric, errors='ignore').head(8)
+                # Filter out the metric itself and get top features
+                top_features = correlations.drop(metric, errors='ignore').head(8)
 
-            # Create bar chart
-            fig = go.Figure(data=go.Bar(
-                x=top_features.values,
-                y=top_features.index,
-                orientation='h',
-                marker_color='lightblue'
-            ))
+                # Create bar chart
+                fig = go.Figure(data=go.Bar(
+                    x=top_features.values,
+                    y=top_features.index,
+                    orientation='h',
+                    marker_color='lightblue'
+                ))
 
-            fig.update_layout(
-                title=f"Feature Importance for {metric.title()}",
-                xaxis_title="Correlation Strength",
-                height=300,
-                margin=dict(l=150, r=50, t=50, b=50)
-            )
+                fig.update_layout(
+                    title=f"Feature Importance for {metric.title()}",
+                    xaxis_title="Correlation Strength",
+                    height=300,
+                    margin=dict(l=150, r=50, t=50, b=50)
+                )
 
-            st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True)
+
+    # Show sample of titles with high-impact features
+    st.subheader("📝 Sample Titles with Feature Analysis")
+
+    # Select a few interesting features
+    sample_features = ['sentiment_compound', 'word_count', 'power_words_count', 'is_question']
+    available_features = [f for f in sample_features if f in analysis_df.columns]
+
+    if available_features:
+        sample_df = analysis_df[['title', 'views', 'engagement_rate'] + available_features].head(10)
+        st.dataframe(sample_df, use_container_width=True)
 
 
-def display_detailed_thumbnail_analysis(thumbnail_features, engagement_data, analyzer):
+def display_detailed_thumbnail_analysis(thumbnail_features, engagement_data, video_metadata, analyzer):
     """Detailed thumbnail analysis"""
 
     st.subheader("🎨 Color Analysis Impact")
+
+    # Merge with video metadata
+    analysis_df = pd.concat([
+        video_metadata[['title']].reset_index(drop=True),
+        thumbnail_features.reset_index(drop=True),
+        engagement_data.reset_index(drop=True)
+    ], axis=1)
 
     # Color feature analysis
     color_features = [col for col in thumbnail_features.columns if
                       'color' in col.lower() or 'brightness' in col.lower() or 'contrast' in col.lower()]
 
     if color_features:
-        combined_data = pd.concat([thumbnail_features[color_features], engagement_data], axis=1)
-        color_correlations = combined_data.corr()['views'].abs().sort_values(ascending=False)
+        # Only use numeric columns for correlation
+        numeric_cols = analysis_df.select_dtypes(include=[np.number]).columns
+        color_features_numeric = [f for f in color_features if f in numeric_cols]
 
-        fig = px.bar(
-            x=color_correlations.values[1:],  # Exclude self-correlation
-            y=color_correlations.index[1:],
-            orientation='h',
-            title="Color Features Impact on Views"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        if color_features_numeric and 'views' in numeric_cols:
+            color_correlations = analysis_df[color_features_numeric + ['views']].corr()['views'].abs().sort_values(
+                ascending=False)
+
+            fig = px.bar(
+                x=color_correlations.values[1:],  # Exclude self-correlation
+                y=color_correlations.index[1:],
+                orientation='h',
+                title="Color Features Impact on Views"
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
 
 def display_advanced_analytics_tab(title_features, thumbnail_features, engagement_data,
@@ -542,7 +675,8 @@ def display_advanced_analytics_tab(title_features, thumbnail_features, engagemen
             engagement_data,
             x='views',
             nbins=20,
-            title="Views Distribution"
+            title="Views Distribution",
+            labels={'views': 'Views', 'count': 'Number of Videos'}
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -563,24 +697,28 @@ def display_advanced_analytics_tab(title_features, thumbnail_features, engagemen
                 x='days_since_publish',
                 y='views',
                 title="Views vs Days Since Publication",
-                trendline="ols"
+                trendline="ols",
+                labels={'days_since_publish': 'Days Since Published', 'views': 'Views'}
             )
             st.plotly_chart(fig, use_container_width=True)
 
         if enable_clustering:
             st.markdown("#### 🎲 Content Clustering")
             if title_features is not None and len(title_features) > 10:
-                clusters = advanced_analytics.perform_clustering(title_features, n_clusters=3)
-                cluster_summary = pd.DataFrame({
-                    'Cluster': range(len(clusters)),
-                    'Videos': [len(cluster) for cluster in clusters],
-                    'Avg Views': [engagement_data.iloc[cluster]['views'].mean() for cluster in clusters]
-                })
-                st.dataframe(cluster_summary)
+                try:
+                    clusters = advanced_analytics.perform_clustering(title_features, n_clusters=3)
+                    cluster_summary = pd.DataFrame({
+                        'Cluster': range(len(clusters)),
+                        'Videos': [len(cluster) for cluster in clusters],
+                        'Avg Views': [engagement_data.iloc[cluster]['views'].mean() for cluster in clusters]
+                    })
+                    st.dataframe(cluster_summary)
+                except Exception as e:
+                    st.warning(f"Clustering failed: {str(e)}")
 
 
 def display_temporal_analysis(channel_data, title_features, thumbnail_features,
-                              engagement_data, advanced_analytics):
+                              engagement_data, video_metadata, advanced_analytics):
     """Temporal analysis of channel performance"""
 
     st.header("⏰ Temporal Analysis")
@@ -675,8 +813,9 @@ def display_recommendations(title_features, thumbnail_features, engagement_data,
         st.warning("No features available for recommendations")
         return
 
-    # Calculate correlations
-    analysis_data = pd.concat([all_features, engagement_data.select_dtypes(include=[np.number])], axis=1)
+    # Calculate correlations - only numeric columns
+    numeric_engagement = engagement_data.select_dtypes(include=[np.number])
+    analysis_data = pd.concat([all_features, numeric_engagement], axis=1)
     correlations = analysis_data.corr()['views'].abs().sort_values(ascending=False)
 
     # Generate recommendations
@@ -697,8 +836,46 @@ def display_recommendations(title_features, thumbnail_features, engagement_data,
         else:
             st.write(rec)
 
+    # Additional specific recommendations based on feature analysis
+    st.subheader("📋 Specific Optimization Tips")
 
-def display_export_options(title_features, thumbnail_features, engagement_data, export_format):
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("### 📝 Title Optimization")
+        if title_features is not None:
+            # Analyze title patterns
+            avg_word_count = title_features['word_count'].mean() if 'word_count' in title_features.columns else 0
+            avg_sentiment = title_features[
+                'sentiment_compound'].mean() if 'sentiment_compound' in title_features.columns else 0
+
+            st.write(f"• Average word count: {avg_word_count:.1f}")
+            st.write(f"• Average sentiment: {avg_sentiment:.3f}")
+
+            if avg_word_count < 8:
+                st.write("💡 Consider using longer, more descriptive titles")
+            if avg_sentiment < 0.2:
+                st.write("💡 Try more positive/engaging language in titles")
+
+    with col2:
+        st.markdown("### 🖼️ Thumbnail Optimization")
+        if thumbnail_features is not None:
+            # Analyze thumbnail patterns
+            avg_faces = thumbnail_features['num_faces'].mean() if 'num_faces' in thumbnail_features.columns else 0
+            avg_brightness = thumbnail_features[
+                'brightness_mean'].mean() if 'brightness_mean' in thumbnail_features.columns else 0
+
+            st.write(f"• Average faces detected: {avg_faces:.1f}")
+            st.write(f"• Average brightness: {avg_brightness:.1f}")
+
+            if avg_faces < 0.5:
+                st.write("💡 Consider including faces in thumbnails")
+            if avg_brightness < 100:
+                st.write("💡 Try using brighter, more vibrant thumbnails")
+
+
+def display_export_options(title_features, thumbnail_features, engagement_data,
+                           video_metadata, export_format):
     """Export analysis results"""
 
     st.header("📥 Export Results")
@@ -714,31 +891,125 @@ def display_export_options(title_features, thumbnail_features, engagement_data, 
         export_data_dict['thumbnail_features'] = thumbnail_features
     if engagement_data is not None:
         export_data_dict['engagement_data'] = engagement_data
+    if video_metadata is not None:
+        export_data_dict['video_metadata'] = video_metadata
 
     with col1:
         if st.button("📊 Export Analysis Results"):
             if export_format == "CSV":
-                # Create combined CSV
-                combined_df = pd.concat(list(export_data_dict.values()), axis=1)
-                csv_buffer = io.StringIO()
-                combined_df.to_csv(csv_buffer, index=False)
+                # Create ZIP file with multiple CSVs
+                import zipfile
+                from io import BytesIO
+
+                zip_buffer = BytesIO()
+                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                    for name, df in export_data_dict.items():
+                        csv_buffer = io.StringIO()
+                        df.to_csv(csv_buffer, index=False)
+                        zip_file.writestr(f"{name}.csv", csv_buffer.getvalue())
 
                 st.download_button(
-                    label="Download CSV",
-                    data=csv_buffer.getvalue(),
-                    file_name="youtube_analysis_results.csv",
-                    mime="text/csv"
+                    label="Download All CSVs (ZIP)",
+                    data=zip_buffer.getvalue(),
+                    file_name="youtube_analysis_results.zip",
+                    mime="application/zip"
+                )
+
+            elif export_format == "Excel":
+                # Create Excel with multiple sheets
+                excel_buffer = io.BytesIO()
+                with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+                    for name, df in export_data_dict.items():
+                        df.to_excel(writer, sheet_name=name[:31], index=False)
+
+                st.download_button(
+                    label="Download Excel File",
+                    data=excel_buffer.getvalue(),
+                    file_name="youtube_analysis_results.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+            elif export_format == "JSON":
+                # Export as JSON
+                import json
+                json_data = {}
+                for name, df in export_data_dict.items():
+                    json_data[name] = df.to_dict('records')
+
+                json_str = json.dumps(json_data, indent=2, default=str)
+
+                st.download_button(
+                    label="Download JSON",
+                    data=json_str,
+                    file_name="youtube_analysis_results.json",
+                    mime="application/json"
                 )
 
     with col2:
         if st.button("📈 Export Correlations"):
-            # Export correlation matrices
-            st.info("Correlation export functionality would be implemented here")
+            st.info("Select analysis tab to export specific correlations")
 
     with col3:
-        if st.button("📋 Export Recommendations"):
-            # Export recommendations as text
-            st.info("Recommendations export functionality would be implemented here")
+        if st.button("📋 Export Report"):
+            # Generate text report
+            report = generate_analysis_report(
+                title_features, thumbnail_features,
+                engagement_data, video_metadata
+            )
+            st.download_button(
+                label="Download Report",
+                data=report,
+                file_name="youtube_analysis_report.txt",
+                mime="text/plain"
+            )
+
+
+def generate_analysis_report(title_features, thumbnail_features, engagement_data, video_metadata):
+    """Generate a comprehensive text report"""
+    report_lines = [
+        "YOUTUBE CHANNEL ANALYSIS REPORT",
+        "=" * 50,
+        f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+        "CHANNEL OVERVIEW",
+        "-" * 20,
+        f"Total videos analyzed: {len(engagement_data)}",
+        f"Total views: {engagement_data['views'].sum():,.0f}",
+        f"Average views: {engagement_data['views'].mean():,.0f}",
+        f"Average engagement rate: {engagement_data['engagement_rate'].mean() * 100:.2f}%",
+        "",
+        "TOP PERFORMING VIDEOS",
+        "-" * 20
+    ]
+
+    # Add top videos
+    if video_metadata is not None:
+        top_videos = engagement_data.merge(video_metadata, on='video_id').nlargest(5, 'views')
+        for idx, video in top_videos.iterrows():
+            report_lines.append(f"{idx + 1}. {video['title'][:60]}...")
+            report_lines.append(f"   Views: {video['views']:,.0f} | Likes: {video['likes']:,.0f}")
+            report_lines.append("")
+
+    # Add feature analysis summary
+    if title_features is not None:
+        report_lines.extend([
+            "TITLE ANALYSIS SUMMARY",
+            "-" * 20,
+            f"Average word count: {title_features['word_count'].mean():.1f}" if 'word_count' in title_features.columns else "",
+            f"Questions in titles: {(title_features['is_question'].sum() / len(title_features) * 100):.1f}%" if 'is_question' in title_features.columns else "",
+            ""
+        ])
+
+    if thumbnail_features is not None:
+        report_lines.extend([
+            "THUMBNAIL ANALYSIS SUMMARY",
+            "-" * 20,
+            f"Videos with faces: {(thumbnail_features['num_faces'] > 0).sum() / len(thumbnail_features) * 100:.1f}%" if 'num_faces' in thumbnail_features.columns else "",
+            f"Average brightness: {thumbnail_features['brightness_mean'].mean():.1f}" if 'brightness_mean' in thumbnail_features.columns else "",
+            ""
+        ])
+
+    return "\n".join(report_lines)
 
 
 if __name__ == "__main__":
