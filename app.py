@@ -26,62 +26,116 @@ st.set_page_config(
 )
 
 # Custom CSS for better layout and styling
+# Replace your existing CSS section with this improved version:
+
 st.markdown("""
 <style>
+    /* FULL WIDTH LAYOUT */
     .main .block-container {
-        padding-top: 2rem;
-        padding-left: 2rem;
-        padding-right: 2rem;
+        padding-top: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-bottom: 0rem;
+        max-width: none;
+        width: 100%;
+    }
+
+    /* Remove default streamlit padding */
+    .css-18e3th9 {
+        padding-top: 0rem;
+        padding-bottom: 0rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* Make sidebar narrower to give more space to main content */
+    .css-1d391kg {
+        width: 300px;
+    }
+
+    /* Ensure main content uses full available width */
+    .css-1y4p8pa {
         max-width: none;
         width: 100%;
     }
 
     .main-header {
-        font-size: 3rem;
+        font-size: 2.5rem;
         color: #FF0000;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
         font-weight: bold;
     }
 
+    /* IMPROVED METRIC CARDS */
     .metric-card {
-        background: linear-gradient(135deg, #f0f2f6 0%, #e8ebf0 100%);
-        padding: 1.5rem;
-        border-radius: 1rem;
-        border-left: 5px solid #FF0000;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        margin: 0.5rem 0;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.2rem;
+        border-radius: 12px;
+        border-left: 4px solid #FF0000;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin: 0.3rem 0;
+        text-align: center;
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
+    .metric-card h3 {
+        font-size: 0.9rem;
+        margin: 0 0 0.5rem 0;
+        font-weight: 600;
+    }
+
+    .metric-card h2 {
+        font-size: 1.8rem;
+        margin: 0;
+        font-weight: bold;
+        color: #333;
+    }
+
+    /* IMPROVED INSIGHT BOXES */
     .insight-box {
-        background: linear-gradient(135deg, #e8f4fd 0%, #d1e7dd 100%);
-        padding: 1.5rem;
-        border-radius: 1rem;
-        border-left: 4px solid #1f77b4;
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        padding: 1.2rem;
+        border-radius: 12px;
+        border-left: 4px solid #2196f3;
         margin: 1rem 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
+    /* IMPROVED DOWNLOAD SECTION */
     .download-section {
-        background: linear-gradient(135deg, #fff3cd 0%, #f8d7da 100%);
+        background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
         padding: 1.5rem;
-        border-radius: 1rem;
-        border-left: 4px solid #ffc107;
+        border-radius: 12px;
+        border-left: 4px solid #ff9800;
         margin: 2rem 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
+    /* BETTER TABS */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 4px;
+        background-color: #f8f9fa;
+        padding: 4px;
+        border-radius: 12px;
     }
 
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        padding-left: 20px;
-        padding-right: 20px;
-        border-radius: 10px;
-        background-color: #f0f2f6;
-        border: 2px solid transparent;
+        height: 45px;
+        padding-left: 16px;
+        padding-right: 16px;
+        border-radius: 8px;
+        background-color: transparent;
+        border: none;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #e9ecef;
     }
 
     .stTabs [aria-selected="true"] {
@@ -89,36 +143,132 @@ st.markdown("""
         color: white;
     }
 
-    /* Make plotly charts fill container */
+    /* FULL WIDTH CHARTS */
     .js-plotly-plot {
         width: 100% !important;
     }
 
-    /* Sidebar styling */
-    .css-1d391kg {
-        padding-top: 1rem;
-    }
-
-    /* Full width for dataframes */
-    .dataframe {
+    .plotly-graph-div {
         width: 100% !important;
     }
 
-    /* Button styling */
+    /* BETTER DATAFRAMES */
+    .dataframe {
+        width: 100% !important;
+        font-size: 0.9rem;
+    }
+
+    .stDataFrame {
+        width: 100%;
+    }
+
+    .stDataFrame > div {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    /* IMPROVED BUTTONS */
     .stButton > button {
         width: 100%;
-        border-radius: 10px;
+        border-radius: 8px;
         border: 2px solid #FF0000;
         background-color: #FF0000;
         color: white;
-        font-weight: bold;
-        transition: all 0.3s;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s;
+        font-size: 0.95rem;
     }
 
     .stButton > button:hover {
         background-color: #cc0000;
         border-color: #cc0000;
-        transform: translateY(-2px);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(255, 0, 0, 0.3);
+    }
+
+    /* DOWNLOAD BUTTONS */
+    .stDownloadButton > button {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #28a745;
+        background-color: #28a745;
+        color: white;
+        font-weight: 500;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        margin: 0.2rem 0;
+    }
+
+    .stDownloadButton > button:hover {
+        background-color: #218838;
+        border-color: #218838;
+    }
+
+    /* SECTION HEADERS */
+    h1, h2, h3 {
+        color: #333;
+        font-weight: 600;
+    }
+
+    h2 {
+        border-bottom: 2px solid #FF0000;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    h3 {
+        color: #666;
+        margin-top: 1.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    /* SIDEBAR IMPROVEMENTS */
+    .css-1d391kg {
+        background-color: #f8f9fa;
+        padding: 1rem;
+    }
+
+    .css-1d391kg .stSelectbox > div > div {
+        background-color: white;
+    }
+
+    .css-1d391kg .stTextInput > div > div > input {
+        background-color: white;
+    }
+
+    /* BETTER SPACING */
+    .element-container {
+        margin-bottom: 1rem;
+    }
+
+    /* RESPONSIVE COLUMNS */
+    .row-widget {
+        width: 100%;
+    }
+
+    /* IMPROVED ALERTS */
+    .stAlert {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* BETTER TEXT READABILITY */
+    .stMarkdown {
+        line-height: 1.6;
+    }
+
+    /* FULL WIDTH CONTAINERS */
+    .stContainer {
+        max-width: none !important;
+        width: 100% !important;
+    }
+
+    /* Remove any max-width constraints */
+    .css-1y4p8pa, .css-18e3th9, .main .block-container {
+        max-width: none !important;
+        width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -312,7 +462,6 @@ def run_analysis(api_key, channel_input, max_videos, analysis_type, feature_grou
         st.exception(e)
 
 
-
 def prepare_engagement_data(channel_data):
     """Prepare engagement metrics dataframe"""
     engagement_metrics = []
@@ -331,7 +480,15 @@ def prepare_engagement_data(channel_data):
             if pd.isna(published_ts):
                 continue  # Skip if invalid timestamp
 
-            days_since_publish = (pd.Timestamp.now() - published_ts).days
+            # FIX: Handle timezone-aware timestamps properly
+            if published_ts.tz is not None:
+                # Convert to timezone-naive UTC
+                published_ts = published_ts.tz_convert('UTC').tz_localize(None)
+
+            # Calculate days since publish using timezone-naive timestamps
+            current_time = pd.Timestamp.now()
+            days_since_publish = (current_time - published_ts).days
+
             if days_since_publish <= 0:
                 continue  # Skip videos published today or in future
 
@@ -373,58 +530,6 @@ def prepare_engagement_data(channel_data):
 
     print(f"[INFO] Total valid videos processed: {valid_count}")
     return pd.DataFrame(engagement_metrics)
-    """Prepare engagement metrics dataframe"""
-    engagement_metrics = []
-
-    for video in channel_data:
-        try:
-            # Pull data safely
-            views = max(video.get('view_count', 0), 1)
-            likes = video.get('like_count', 0)
-            comments = video.get('comment_count', 0)
-            published_str = video.get('published_at')  # Corrected!
-
-            # Convert and validate timestamp
-            published_ts = pd.to_datetime(published_str, errors='coerce')
-            if pd.isna(published_ts):
-                continue  # Skip if invalid timestamp
-
-            days_since_publish = (pd.Timestamp.now() - published_ts).days
-            if days_since_publish <= 0:
-                continue  # Skip videos published today or in future
-
-            # Engagement rates
-            like_rate = likes / views
-            comment_rate = comments / views
-            engagement_rate = (likes + comments) / views
-
-            # Performance scores
-            total_engagement = likes + comments
-            viral_score = np.log10(views + 1) * engagement_rate
-
-            # Append valid data
-            engagement_metrics.append({
-                'video_id': video['video_id'],
-                'views': views,
-                'likes': likes,
-                'comments': comments,
-                'like_rate': like_rate,
-                'comment_rate': comment_rate,
-                'engagement_rate': engagement_rate,
-                'total_engagement': total_engagement,
-                'viral_score': viral_score,
-                'duration_minutes': video.get('duration_seconds', 0) / 60,
-                'days_since_publish': days_since_publish,
-                'views_per_day': views / days_since_publish,
-                'subscriber_count': video.get('channel_subscriber_count', 0)
-            })
-
-        except Exception as e:
-            print(f"[WARN] Skipping video due to error: {e}")
-            continue
-
-    return pd.DataFrame(engagement_metrics)
-
 
 
 def display_complete_analysis(title_features, thumbnail_features, engagement_data,
@@ -573,47 +678,6 @@ def display_correlation_overview(title_features, thumbnail_features, engagement_
         styled_df = top_correlations.style.applymap(color_correlation, subset=['Correlation'])
         st.dataframe(styled_df, use_container_width=True)
 
-    # Add download buttons for correlation data
-    st.markdown("---")
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if st.button("📥 Download Correlation Matrix (CSV)"):
-            csv_buffer = io.StringIO()
-            correlations.to_csv(csv_buffer)
-            st.download_button(
-                label="💾 Download CSV",
-                data=csv_buffer.getvalue(),
-                file_name="correlation_matrix.csv",
-                mime="text/csv"
-            )
-
-    with col2:
-        if st.button("📥 Download Correlation Matrix (Excel)"):
-            excel_buffer = io.BytesIO()
-            with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-                correlations.to_excel(writer, sheet_name='Correlation_Matrix')
-                top_correlations.to_excel(writer, sheet_name='Top_Correlations', index=False)
-            excel_buffer.seek(0)
-
-            st.download_button(
-                label="💾 Download Excel",
-                data=excel_buffer.getvalue(),
-                file_name="correlation_analysis.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-    with col3:
-        if st.button("📥 Download Top Correlations (CSV)"):
-            csv_buffer = io.StringIO()
-            top_correlations.to_csv(csv_buffer, index=False)
-            st.download_button(
-                label="💾 Download CSV",
-                data=csv_buffer.getvalue(),
-                file_name="top_correlations.csv",
-                mime="text/csv"
-            )
-
 
 def display_title_analysis(title_features, engagement_data, analyzer, correlation_threshold):
     """Display title-specific analysis"""
@@ -647,16 +711,6 @@ def display_title_analysis(title_features, engagement_data, analyzer, correlatio
                 st.markdown(f"**{metric.title()}:**")
                 for insight in metric_insights:
                     st.write(f"• {insight}")
-
-        # Download correlation matrix
-        csv_buffer = io.StringIO()
-        correlations.to_csv(csv_buffer)
-        st.download_button(
-            label="📥 Download Title Correlations",
-            data=csv_buffer.getvalue(),
-            file_name="title_correlations.csv",
-            mime="text/csv"
-        )
 
 
 def display_thumbnail_analysis(thumbnail_features, engagement_data, analyzer, correlation_threshold):
@@ -704,12 +758,26 @@ def display_detailed_title_analysis(title_features, engagement_data, analyzer):
         with col1 if i % 2 == 0 else col2:
             st.subheader(f"Top Features for {metric.title()}")
 
-            # Calculate correlations for this metric
+            # FIX: Only use numeric columns for correlation
             combined_data = pd.concat([title_features, engagement_data], axis=1)
-            correlations = combined_data.corr()[metric].abs().sort_values(ascending=False)
+
+            # Select only numeric columns
+            numeric_data = combined_data.select_dtypes(include=[np.number])
+
+            # Check if the metric exists in numeric data
+            if metric not in numeric_data.columns:
+                st.warning(f"Metric '{metric}' not found in numeric data")
+                continue
+
+            # Calculate correlations for this metric
+            correlations = numeric_data.corr()[metric].abs().sort_values(ascending=False)
 
             # Filter out the metric itself and get top features
             top_features = correlations.drop(metric, errors='ignore').head(8)
+
+            if len(top_features) == 0:
+                st.info(f"No correlations found for {metric}")
+                continue
 
             # Create bar chart
             fig = go.Figure(data=go.Bar(
@@ -740,15 +808,22 @@ def display_detailed_thumbnail_analysis(thumbnail_features, engagement_data, ana
 
     if color_features:
         combined_data = pd.concat([thumbnail_features[color_features], engagement_data], axis=1)
-        color_correlations = combined_data.corr()['views'].abs().sort_values(ascending=False)
 
-        fig = px.bar(
-            x=color_correlations.values[1:],  # Exclude self-correlation
-            y=color_correlations.index[1:],
-            orientation='h',
-            title="Color Features Impact on Views"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        # FIX: Only use numeric columns for correlation
+        numeric_data = combined_data.select_dtypes(include=[np.number])
+
+        if 'views' in numeric_data.columns:
+            color_correlations = numeric_data.corr()['views'].abs().sort_values(ascending=False)
+
+            fig = px.bar(
+                x=color_correlations.values[1:],  # Exclude self-correlation
+                y=color_correlations.index[1:],
+                orientation='h',
+                title="Color Features Impact on Views"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Views data not available for correlation analysis")
 
 
 def display_advanced_analytics_tab(title_features, thumbnail_features, engagement_data,
@@ -781,14 +856,13 @@ def display_advanced_analytics_tab(title_features, thumbnail_features, engagemen
     with col2:
         st.markdown("#### ⏰ Temporal Patterns")
 
-        # Engagement over time - Remove trendline to avoid statsmodels dependency
+        # Engagement over time
         if 'days_since_publish' in engagement_data.columns:
             fig = px.scatter(
                 engagement_data,
                 x='days_since_publish',
                 y='views',
                 title="Views vs Days Since Publication"
-                # Removed trendline="ols" to avoid statsmodels dependency
             )
             st.plotly_chart(fig, use_container_width=True)
 
@@ -900,9 +974,18 @@ def display_recommendations(title_features, thumbnail_features, engagement_data,
         st.warning("No features available for recommendations")
         return
 
-    # Calculate correlations
+    # Calculate correlations - FIX: Use only numeric data
     analysis_data = pd.concat([all_features, engagement_data.select_dtypes(include=[np.number])], axis=1)
-    correlations = analysis_data.corr()['views'].abs().sort_values(ascending=False)
+
+    # Select only numeric columns for correlation
+    numeric_data = analysis_data.select_dtypes(include=[np.number])
+
+    # Check if 'views' column exists
+    if 'views' not in numeric_data.columns:
+        st.warning("Views data not available for generating recommendations")
+        return
+
+    correlations = numeric_data.corr()['views'].abs().sort_values(ascending=False)
 
     # Generate recommendations
     recommendations = []
@@ -915,12 +998,41 @@ def display_recommendations(title_features, thumbnail_features, engagement_data,
             if feature != 'views':
                 recommendations.append(f"   • Focus on optimizing {feature} (correlation: {corr:.3f})")
 
+    # Add more recommendation categories
+    if len(correlations[correlations > 0.5]) > 0:
+        strong_correlations = correlations[correlations > 0.5]
+        recommendations.append("\n🔥 **Strong Performance Drivers:**")
+        for feature, corr in strong_correlations.items():
+            if feature != 'views':
+                recommendations.append(f"   • {feature} shows strong correlation ({corr:.3f}) - prioritize this!")
+
+    # Moderate correlations
+    moderate_correlations = correlations[(correlations > 0.3) & (correlations <= 0.5)]
+    if len(moderate_correlations) > 0:
+        recommendations.append("\n⚡ **Moderate Impact Opportunities:**")
+        for feature, corr in moderate_correlations.head(3).items():
+            if feature != 'views':
+                recommendations.append(f"   • Consider improving {feature} (correlation: {corr:.3f})")
+
     # Display recommendations in attractive boxes
-    for rec in recommendations:
-        if rec.startswith("🎯"):
-            st.markdown(f'<div class="insight-box">{rec}</div>', unsafe_allow_html=True)
-        else:
-            st.write(rec)
+    if recommendations:
+        for rec in recommendations:
+            if rec.startswith(("🎯", "🔥", "⚡")):
+                st.markdown(f'<div class="insight-box">{rec}</div>', unsafe_allow_html=True)
+            else:
+                st.write(rec)
+    else:
+        st.info("No strong correlations found to generate specific recommendations.")
+
+        # Fallback general recommendations
+        st.markdown("""
+        ### General YouTube Optimization Tips:
+        - **Titles**: Use clear, descriptive titles with relevant keywords
+        - **Thumbnails**: Ensure high contrast and readable text
+        - **Engagement**: Encourage likes and comments in your content
+        - **Consistency**: Maintain regular upload schedule
+        - **Quality**: Focus on content that provides value to viewers
+        """)
 
 
 def display_comprehensive_downloads(title_features, thumbnail_features, engagement_data, analyzer):
